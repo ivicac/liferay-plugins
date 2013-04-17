@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans default-destroy-method="destroy"
+	   default-init-method="afterPropertiesSet"
+	   xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd"
+	   xmlns:context="http://www.springframework.org/schema/context">
+
+	<context:property-placeholder location="classpath:/portlet.properties"/>
+
+	<bean id="lcsGatewayJSONWebServiceClient" class="com.liferay.lcs.web.client.JSONWebServiceClientImpl">
+		<property name="hostName" value="${osb.lcs.gateway.hostName}"/>
+		<property name="hostPort" value="${osb.lcs.gateway.hostPort}"/>
+	</bean>
+
+	<bean id="lcsGatewayService" class="com.liferay.lcs.service.impl.LCSGatewayServiceImpl">
+		<property name="jsonWebServiceClient" ref="lcsGatewayJSONWebServiceClient"/>
+	</bean>
+
+	<bean id="lcsClusterEntryService" class="com.liferay.lcs.service.impl.LCSClusterEntryServiceImpl">
+		<property name="jsonWebServiceClient" ref="lcsGatewayJSONWebServiceClient"/>
+	</bean>
+
+	<bean id="lcsClusterNodeService" class="com.liferay.lcs.service.impl.LCSClusterNodeServiceImpl">
+		<property name="jsonWebServiceClient" ref="lcsGatewayJSONWebServiceClient"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+	</bean>
+
+	<bean id="messageSender.commands" class="com.liferay.lcs.service.test.MockitoFactoryBean">
+		<constructor-arg value="com.liferay.portal.kernel.messaging.sender.SingleDestinationMessageSender"/>
+	</bean>
+
+	<bean id="keyGenerator" class="com.liferay.lcs.service.test.MockitoFactoryBean">
+		<constructor-arg value="com.liferay.lcs.util.KeyGeneratorImpl"/>
+	</bean>
+</beans>

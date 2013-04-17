@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans default-destroy-method="destroy"
+       default-init-method="afterPropertiesSet"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!-- Destinations -->
+
+    <bean id="destination.commands" class="com.liferay.portal.kernel.messaging.ParallelDestination">
+        <property name="name" value="gateway/commands"/>
+    </bean>
+
+    <!-- Messaging -->
+
+    <bean id="messageListener.commands" class="com.liferay.lcs.messaging.CommandMessageListener">
+		<property name="commands">
+			<map>
+				<entry key="#{T(com.liferay.lcs.messaging.CommandMessage).COMMAND_TYPE_CHECK_HEARTBEAT}" value-ref="checkHeartbeatCommand"/>
+				<entry key="#{T(com.liferay.lcs.messaging.CommandMessage).COMMAND_TYPE_EXECUTE_SCRIPT}" value-ref="executeScriptCommand"/>
+				<entry key="#{T(com.liferay.lcs.messaging.CommandMessage).COMMAND_TYPE_INSTALL_PATCHES}" value-ref="installPatchesCommand"/>
+				<entry key="#{T(com.liferay.lcs.messaging.CommandMessage).COMMAND_TYPE_SEND_PATCHES}" value-ref="sendPatchesCommand"/>
+				<entry key="#{T(com.liferay.lcs.messaging.CommandMessage).COMMAND_TYPE_SEND_PORTAL_PROPERTIES}" value-ref="sendPortalPropertiesCommand"/>
+			</map>
+		</property>
+		<property name="digitalSignature" ref="digitalSignature"/>
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+	</bean>
+    <bean id="messageListener.monitoring" class="com.liferay.lcs.messaging.MonitoringMessageListener">
+		<property name="handshakeService" ref="handshakeManager"/>
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+    </bean>
+
+    <!-- Configurator -->
+
+    <bean id="messagingConfigurator.gateway" class="com.liferay.lcs.messaging.config.LCSPluginMessagingConfigurator">
+        <property name="messageListeners">
+            <map key-type="java.lang.String" value-type="java.util.List">
+                <entry key="gateway/commands">
+                    <list value-type="com.liferay.portal.kernel.messaging.MessageListener">
+                        <ref bean="messageListener.commands"/>
+                    </list>
+                </entry>
+                <entry key="liferay/monitoring">
+                    <list value-type="com.liferay.portal.kernel.messaging.MessageListener">
+                        <ref bean="messageListener.monitoring" />
+                    </list>
+                </entry>
+            </map>
+        </property>
+        <property name="destinations">
+            <list>
+                <ref bean="destination.commands"/>
+            </list>
+        </property>
+    </bean>
+
+    <!-- Message Sender -->
+
+    <bean id="messageSender" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.liferay.portal.kernel.messaging.MessageBusUtil"/>
+        <property name="targetMethod"  value="getMessageSender"/>
+    </bean>
+
+    <bean id="messageSender.commands" class="com.liferay.portal.kernel.messaging.sender.DefaultSingleDestinationMessageSender">
+        <property name="destinationName" value="gateway/commands" />
+        <property name="messageSender" ref="messageSender"/>
+    </bean>
+
+</beans>

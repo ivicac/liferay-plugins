@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans default-destroy-method="destroy"
+       default-init-method="afterPropertiesSet"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+            http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<!-- Server Id Generator -->
+
+	<bean id="keyGenerator" class="com.liferay.lcs.util.KeyGeneratorImpl">
+		<property name="digester" ref="digester"/>
+		<property name="licenseManager">
+			<bean class="com.liferay.portal.license.util.LicenseManagerUtil" factory-method="getLicenseManager"/>
+		</property>
+		<property name="keyStorePath" value="#{T(com.liferay.util.portlet.PortletProps).get('key.generator.keyStorePath')}" />
+		<property name="keyStoreType" value="#{T(com.liferay.util.portlet.PortletProps).get('key.generator.keyStoreType')}" />
+		<property name="keyStorePassword" value="#{T(com.liferay.util.portlet.PortletProps).get('key.generator.keyStorePassword')}" />
+		<property name="keyAlias" value="#{T(com.liferay.util.portlet.PortletProps).get('key.generator.keyAlias')}" />
+
+	</bean>
+	<bean id="keyGeneratorUtil" class="com.liferay.lcs.util.KeyGeneratorUtil">
+		<property name="keyGenerator" ref="keyGenerator"/>
+	</bean>
+
+	<bean id="digester" class="com.liferay.portal.kernel.util.DigesterUtil" factory-method="getDigester"/>
+
+	<!-- JSONFactory -->
+
+	<bean id="jsonFactory" class="com.liferay.portal.kernel.json.JSONFactoryUtil" factory-method="getJSONFactory"/>
+
+	<!-- HandshakeManager Manager -->
+
+	<bean id="handshakeManager" class="com.liferay.lcs.util.HandshakeManagerImpl">
+		<property name="heartbeatTask" ref="heartbeatTask"/>
+		<property name="jvmMetricsTask" ref="jvmMetricsTask"/>
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="messageSenderCommands" ref="messageSender.commands"/>
+		<property name="messageTask" ref="messageTask"/>
+		<property name="lcsClusterNodeService" ref="lcsClusterNodeService"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+		<property name="handshakeReplyReads" value="#{T(com.liferay.util.portlet.PortletProps).get('handshake.reply.reads')}"/>
+		<property name="handshakeWaitTime" value="#{T(com.liferay.util.portlet.PortletProps).get('handshake.wait.time')}"/>
+		<property name="heartbeatInterval" value="#{T(com.liferay.util.portlet.PortletProps).get('heartbeat.interval')}"/>
+		<property name="stopReplyReads" value="#{T(com.liferay.util.portlet.PortletProps).get('stop.reply.reads')}"/>
+		<property name="stopWaitTime" value="#{T(com.liferay.util.portlet.PortletProps).get('stop.wait.time')}"/>
+	</bean>
+	<bean id="handshakeManagerUtil" class="com.liferay.lcs.util.HandshakeManagerUtil">
+		<property name="handshakeManager" ref="handshakeManager"/>
+	</bean>
+
+    <!-- Tasks -->
+
+    <bean id="jvmMetricsTask" class="com.liferay.lcs.task.JVMMetricsTask">
+		<property name="handshakeManager" ref="handshakeManager"/>
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+		<property name="virtualMachineMetrics">
+			<bean class="com.yammer.metrics.core.VirtualMachineMetrics" factory-method="getInstance"/>
+		</property>
+	</bean>
+    <bean id="messageTask" class="com.liferay.lcs.task.CommandMessageTask">
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="handshakeManager" ref="handshakeManager"/>
+		<property name="messageSenderCommands" ref="messageSender.commands"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+	</bean>
+    <bean id="heartbeatTask" class="com.liferay.lcs.task.HeartbeatTask">
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="handshakeManager" ref="handshakeManager"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+	</bean>
+
+	<!-- Digital Signature -->
+
+	<bean name="digitalSignature" class="com.liferay.lcs.security.DigitalSignatureImpl" >
+		<property name="algorithmProvider" value="#{T(com.liferay.util.portlet.PortletProps).get('digital.signature.algorithmProvider')}" />
+		<property name="signingAlgorithm" value="#{T(com.liferay.util.portlet.PortletProps).get('digital.signature.signingAlgorithm')}" />
+		<property name="keyStorePath" value="#{T(com.liferay.util.portlet.PortletProps).get('digital.signature.keyStorePath')}" />
+		<property name="keyStoreType" value="#{T(com.liferay.util.portlet.PortletProps).get('digital.signature.keyStoreType')}" />
+		<property name="keyStorePassword" value="#{T(com.liferay.util.portlet.PortletProps).get('digital.signature.keyStorePassword')}" />
+		<property name="keyName" value="#{T(com.liferay.util.portlet.PortletProps).get('digital.signature.keyName')}" />
+	</bean>
+
+	<!-- JSON Web Service Client -->
+
+	<bean id="osbLcsGatewayJSONWebServiceClient" class="com.liferay.lcs.json.JSONWebServiceClientImpl">
+		<property name="hostname" value="#{T(com.liferay.util.portlet.PortletProps).get('osb.lcs.gateway.hostName')}"/>
+		<property name="hostPort" value="#{T(com.liferay.util.portlet.PortletProps).get('osb.lcs.gateway.hostPort')}"/>
+		<property name="userName" value="#{T(com.liferay.util.portlet.PortletProps).get('osb.lcs.gateway.userName')}"/>
+		<property name="password" value="#{T(com.liferay.util.portlet.PortletProps).get('osb.lcs.gateway.password')}"/>
+	</bean>
+
+	<bean id="osbLcsPortletJSONWebServiceClient" class="com.liferay.lcs.json.JSONWebServiceClientImpl">
+		<property name="hostname" value="#{T(com.liferay.util.portlet.PortletProps).get('osb.lcs.portlet.hostName')}"/>
+		<property name="hostPort" value="#{T(com.liferay.util.portlet.PortletProps).get('osb.lcs.portlet.hostPort')}"/>
+	</bean>
+
+	<!-- Patcher -->
+
+	<bean id="patcher" class="com.liferay.portal.patcher.PatcherImpl"/>
+
+	<!-- Commands -->
+
+	<bean id="checkHeartbeatCommand" class="com.liferay.lcs.command.CheckHeartbeatCommand">
+		<property name="heartbeatTask" ref="heartbeatTask"/>
+	</bean>
+	<bean id="executeScriptCommand" class="com.liferay.lcs.command.ExecuteScriptCommand">
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="scripting">
+			<bean class="com.liferay.portal.kernel.scripting.ScriptingUtil" factory-method="getScripting"/>
+		</property>
+	</bean>
+	<bean id="installPatchesCommand" class="com.liferay.lcs.command.InstallPatchesCommand">
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="patcher" ref="patcher"/>
+	</bean>
+	<bean id="sendPatchesCommand" class="com.liferay.lcs.command.SendPatchesCommand">
+		<property name="digester" ref="digester"/>
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="patcher" ref="patcher"/>
+	</bean>
+	<bean id="sendPortalPropertiesCommand" class="com.liferay.lcs.command.SendPortalPropertiesCommand">
+		<property name="digester"  ref="digester"/>
+		<property name="lcsGatewayService" ref="lcsGatewayService"/>
+		<property name="props">
+			<bean class="com.liferay.portal.kernel.util.PropsUtil" factory-method="getProps"/>
+		</property>
+	</bean>
+
+	<!-- Services -->
+
+	<bean id="lcsGatewayService" class="com.liferay.lcs.service.impl.LCSGatewayServiceImpl">
+		<property name="jsonWebServiceClient" ref="osbLcsGatewayJSONWebServiceClient"/>
+		<property name="jsonFactory" ref="jsonFactory"/>
+	</bean>
+	<bean id="lcsClusterNodeService" class="com.liferay.lcs.service.impl.LCSClusterNodeServiceImpl">
+		<property name="jsonWebServiceClient" ref="osbLcsPortletJSONWebServiceClient"/>
+		<property name="jsonFactory" ref="jsonFactory"/>
+		<property name="keyGenerator" ref="keyGenerator"/>
+	</bean>
+	<bean id="lcsClusterNodeServiceUtil" class="com.liferay.lcs.service.LCSClusterNodeServiceUtil">
+		<property name="LCSClusterNodeService" ref="lcsClusterNodeService"/>
+	</bean>
+	<bean id="lcsClusterEntryService" class="com.liferay.lcs.service.impl.LCSClusterEntryServiceImpl">
+		<property name="jsonWebServiceClient" ref="osbLcsPortletJSONWebServiceClient"/>
+		<property name="jsonFactory" ref="jsonFactory"/>
+	</bean>
+	<bean id="lcsClusterEntryServiceUtil" class="com.liferay.lcs.service.LCSClusterEntryServiceUtil">
+		<property name="LCSClusterEntryService" ref="lcsClusterEntryService"/>
+	</bean>
+	<bean id="lcsClusterUserService" class="com.liferay.lcs.service.impl.LCSClusterUserServiceImpl">
+		<property name="jsonWebServiceClient" ref="osbLcsPortletJSONWebServiceClient"/>
+	</bean>
+	<bean id="lcsClusteUserServiceUtil" class="com.liferay.lcs.service.LCSClusterUserServiceUtil">
+		<property name="LCSClusterUserService" ref="lcsClusterUserService"/>
+	</bean>
+
+	<!-- Helper -->
+
+	<bean id="osbLcsPortletHelper" class="com.liferay.lcs.util.OsbLcsPortletHelper">
+		<property name="jsonWebServiceClient" ref="osbLcsPortletJSONWebServiceClient"/>
+	</bean>
+</beans>
